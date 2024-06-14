@@ -1,0 +1,45 @@
+def test_sensitivity_variable_handling():
+    # Test case 1: sensitivity_variables is not provided
+    result = sensitivity_variable_handling(None)
+    expected_result = {
+        'GWP_H2': GWP_H2_default,
+        'oil_production': oil_production_default,
+        'water_production': water_production_default,
+        'small_source_emissions_percentage': small_source_emissions_percentage_default,
+        'total_producing_wells': number_production_wells_default,
+        'field_lifespan': field_lifespan_default,
+        'water_cut': water_cut_default,
+        'h2_purification_loss_rate': h2_purification_loss_rate_default,
+        'pressure_decline_rate': pressure_decline_rate_default
+    }
+    assert result == expected_result
+
+    # Test case 2: sensitivity_variables is provided
+    sensitivity_variables = {
+        'GWP_H2': 10,
+        'oil_production': 1000,
+        'water_production': 500,
+        'small_source_emissions_percentage': 0.5,
+        'Total Producing Wells': 50,
+        'Field Life': 20,
+        'Water Cut (bbl/mmscf)': 0.2,
+        'H2 purification loss rate': 0.1,
+        'pressure_decline_rate': 0.05
+    }
+    result = sensitivity_variable_handling(sensitivity_variables)
+    expected_result = {
+        'GWP_H2': 10,
+        'oil_production': 1000,
+        'water_production': 500,
+        'small_source_emissions_percentage': 0.5,
+        'total_producing_wells': 50,
+        'field_lifespan': 20,
+        'water_cut': 0.2,
+        'h2_purification_loss_rate': 0.1,
+        'pressure_decline_rate': 0.05
+    }
+    assert result == expected_result
+
+    # Add more test cases as needed
+
+test_sensitivity_variable_handling()
