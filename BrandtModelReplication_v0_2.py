@@ -14,7 +14,7 @@
 
 # # Import Python Packages
 
-# In[221]:
+# In[1]:
 
 
 #Import relevant packages
@@ -34,7 +34,7 @@ from itertools import repeat
 import os
 
 
-# In[222]:
+# In[2]:
 
 
 # Set seaborn whitegrid style
@@ -55,7 +55,7 @@ sns.set_style("whitegrid")
 
 # # Constants/Assumptions for Calculations
 
-# In[223]:
+# In[3]:
 
 
 GWP_H2_default = 5 #Global Warming Potential of H2, relative to CO2, to enable CO2e calculations. From Brandt OPGEE file: "Low value from Derwent et al. 2020, of 5.0. High value of 10.9 from Warwick et al. 2022."
@@ -186,7 +186,7 @@ total_number_wells_default = number_production_wells_default + number_injection_
 wells_LUnp = 0.068996621 #Fraction of wells with non-plunger liquids unloadings. Default assumption in OPGEE model, "from US EPA (2020) Greenhouse Gas Inventory, based on RY2015"
 wells_LUp = 0.1 #Fraction of wells with plunger liquids unloadings
 
-PSA_unit_slippage_rate = 0.1 #Brandt assumes that the PSA unit only separates 90% of the H2 from the gas stream.
+PSA_unit_slippage_rate_default = 0.1 #Brandt assumes that the PSA unit only separates 90% of the H2 from the gas stream.
 
 drilling_fuel_per_foot_vertical = 0.325964356060972 #gal diesel fuel/ft. This figure taken direct from OPGEE model and assumes Moderate complexity wells drilled at Medium efficiency.
 
@@ -197,7 +197,7 @@ cement_emissions_intensity = 36587.7935725105 #gCO2/ft^3. This is the emissions 
 
 # # Key Variables / Inputs
 
-# In[224]:
+# In[4]:
 
 
 ### Gas Densities. Define a dataframe:
@@ -223,7 +223,7 @@ small_source_emissions_percentage_default = 10 #%
 
 # # Define/Assume Reservoir Conditions for Analysis
 
-# In[274]:
+# In[5]:
 
 
 # Data for the Reservoir Conditions DataFrame
@@ -284,7 +284,7 @@ cases = reservoir_data['Case']
 # print(development_params_df)
 
 
-# In[277]:
+# In[6]:
 
 
 #Now define the assumed production profile over the life of each well. This comes from the OPGEE model, and is based on the assumption that the well will produce 1.3 BCF over its lifetime.
@@ -350,7 +350,7 @@ production_profile_df['Baseline GOR, SCF/BBL'] = production_profile_df['Baseline
 production_profile_df['Low Productivity GOR, SCF/BBL'] = production_profile_df['Low Productivity Raw Gas Rate, MSCFD'] * 1000 / oil_production_default
 # Calculate the high productivity Gas Oil Ratio (GOR)
 production_profile_df['High Productivity GOR, SCF/BBL'] = production_profile_df['High Productivity Raw Gas Rate, MSCFD'] * 1000 / oil_production_default
-# Assume the Gas Oil Ratio (GOR) for the remaining cases ('High CH4', 'Mixed', 'Low H2', 'Low H2 w/ CH4', 'Low H2 w/ N2', 'High H2', 'Deep', 'Shallow') are the same as the baseline GOR
+# Assume the Gas Oil Ratio (GOR) for the remaining cases ('High CH4', 'Mixed', 'Low H2', 'Low H2 w/ CH4', 'Low H2 w/ N2', 'High H2', 'Deep', 'Shallow', 'Exponential Approx Baseline') are the same as the baseline GOR
 production_profile_df['Low H2 GOR, SCF/BBL'] = production_profile_df['Baseline GOR, SCF/BBL']
 production_profile_df['High CH4 GOR, SCF/BBL'] = production_profile_df['Baseline GOR, SCF/BBL']
 production_profile_df['Mixed GOR, SCF/BBL'] = production_profile_df['Baseline GOR, SCF/BBL']
@@ -359,6 +359,7 @@ production_profile_df['Low H2 w/ N2 GOR, SCF/BBL'] = production_profile_df['Base
 production_profile_df['High H2 GOR, SCF/BBL'] = production_profile_df['Baseline GOR, SCF/BBL']
 production_profile_df['Deep GOR, SCF/BBL'] = production_profile_df['Baseline GOR, SCF/BBL']
 production_profile_df['Shallow GOR, SCF/BBL'] = production_profile_df['Baseline GOR, SCF/BBL']
+production_profile_df['Exponential Approx Baseline GOR, SCF/BBL'] = production_profile_df['Baseline GOR, SCF/BBL']
 
 # Similarly assume the raw gas rates for the remaining cases ('High CH4', 'Mixed', 'Low H2', 'Low H2 w/ CH4', 'Low H2 w/ N2', 'High H2', 'Deep', 'Shallow') are the same as the baseline raw gas rate
 production_profile_df['High CH4 Raw Gas Rate, MSCFD'] = production_profile_df['Baseline Raw Gas Rate, MSCFD']
@@ -369,6 +370,7 @@ production_profile_df['Low H2 w/ N2 Raw Gas Rate, MSCFD'] = production_profile_d
 production_profile_df['High H2 Raw Gas Rate, MSCFD'] = production_profile_df['Baseline Raw Gas Rate, MSCFD']
 production_profile_df['Deep Raw Gas Rate, MSCFD'] = production_profile_df['Baseline Raw Gas Rate, MSCFD']
 production_profile_df['Shallow Raw Gas Rate, MSCFD'] = production_profile_df['Baseline Raw Gas Rate, MSCFD']
+
 
 
 # Calculate baseline water production in barrels per day
@@ -400,6 +402,10 @@ production_profile_df['Exponential Approx Baseline Raw Gas Rate, MSCFD'] = ([173
         2642.44335151,  2405.21081827,  2189.27648044,  1992.72823462,
         1813.82564173,  1650.98451532,  1502.76289359,  1367.84827077,
         1245.04597487,  1133.26858882])
+production_profile_df['Exponential Approx Baseline GOR, SCF/BBL'] = production_profile_df['Exponential Approx Baseline Raw Gas Rate, MSCFD'] * 1000 / oil_production_default
+production_profile_df['Exponential Approx Baseline WOR'] = production_profile_df['Water Production, BBL/D'] / oil_production_default
+production_profile_df['Exponential Approx Baseline Wellhead Pressure, PSI'] = production_profile_df['Baseline Wellhead Pressure, PSI']
+
 
 # Print the DataFrame
 production_profile_df.head()
@@ -431,7 +437,7 @@ production_profile_df.head()
 # 
 # Other cases (e.g. high CH4 fields, where the CH4 is "self used" for the processes listed above) will have Operational Combustion Emissions. These will be assessed after replicating the baseline conditions.
 
-# In[227]:
+# In[7]:
 
 
 # Define a function to calculate the operational combustion emissions for a given case and sensitivities
@@ -520,7 +526,7 @@ def calculate_operational_combustion_emissions(case, sensitivity_variables=None)
 # 
 # 
 
-# In[228]:
+# In[8]:
 
 
 # The OPGEE calculations rely on conservation of mass throughout the process flow and calculate vented or fugitive emissions as a proportion of the mass flow of each component of the gas stream.
@@ -542,7 +548,8 @@ def calculate_mass_flows_after_separator(case, sensitivity_variables=None):
     """
     if sensitivity_variables:
         # Extract the sensitivity values
-        oil_production = sensitivity_variables['oil_production']
+        oil_production = sensitivity_variables.get('oil_production', oil_production_default)
+        production_profile_df[f'{case} GOR, SCF/BBL'] = production_profile_df[f'{case} Raw Gas Rate, MSCFD'] * 1000 / oil_production # Recalculating the GOR based on the sensitivity value of Oil Production
     else:
         # Extract the default values
         oil_production = oil_production_default
@@ -599,7 +606,7 @@ def calculate_mass_flows_after_separator(case, sensitivity_variables=None):
 # 
 # The OPGEE operating manual describes the calculation of emissions factors, broken down into "productivity tranches" (i.e. continuous range of observed gas flow rates is 'binned' into discrete sub-ranges). This calculation logic is replicated here:
 
-# In[229]:
+# In[9]:
 
 
 # First extract the average emissions factors for each equipment type and tranche from an excel file extracted from the OPGEE model:
@@ -630,6 +637,7 @@ productivity_tranche_data_df = data_sheet2
 def calculate_emissions_factors(equipment_type, case, sensitivity_variables=None, injection_well_flow_rate=None):
     if sensitivity_variables:
         oil_production = sensitivity_variables.get('oil_production', oil_production_default)
+        production_profile_df[f'{case} GOR, SCF/BBL'] = production_profile_df[f'{case} Raw Gas Rate, MSCFD'] * 1000 / oil_production # Recalculating the GOR based on the sensitivity value of Oil Production
         number_production_wells = sensitivity_variables.get('number_production_wells', number_production_wells_default)
         GWP_H2 = sensitivity_variables.get('GWP_H2', GWP_H2_default)
         length_of_field_life = sensitivity_variables.get('length_of_field_life', field_lifespan_default)
@@ -741,14 +749,14 @@ def calculate_emissions_factors(equipment_type, case, sensitivity_variables=None
         'loss_rates_df': loss_rates_df
     }
 
-# Test the function
-test = calculate_emissions_factors('Well', 'Baseline')['loss_rates_df']
-test
+# # Test the function
+# test = calculate_emissions_factors('Well', 'Baseline')['loss_rates_df']
+# test
 #Print all 10 of the year 30 rows from the test dataframe
 # print(test['bin_assignments_df'].loc[test['bin_assignments_df']['Year'] == 30])
 
 
-# In[230]:
+# In[10]:
 
 
 #Brandt's model shows that the loss rate at the well head increases as production decreases. These rates are extracted from Brandt's model (and calculated as per Brandt/OPGEE logic) as follows later below.
@@ -931,7 +939,7 @@ def calculate_total_production_vent_emissions(case, sensitivity_variables =None)
 # print(f"H2O after separator for the 'Baseline' case: {total_production_vent_emissions['H2O_after_separator']}")
 
 
-# In[231]:
+# In[11]:
 
 
 # Now we have determined the mass flows after the separator
@@ -959,7 +967,7 @@ def calculate_total_production_vent_emissions(case, sensitivity_variables =None)
 
 # #### 2.1.2.1 Use the component level emissions factors to calculate production fugitive emissions
 
-# In[232]:
+# In[12]:
 
 
 #Create a helper function to calculate fugitive emissions from the production phase of the field:
@@ -1162,7 +1170,7 @@ print(emissions_info['total_production_fugitive_emissions'])
 # 
 # Fugitive emissions via surface processing are assumed to only occur as part of 'gas gathering'. This is calculated similarly as in 2.1, above, with a fractional loss rate applied to the gas production rate at the relevant point in the process flow.
 
-# In[233]:
+# In[13]:
 
 
 # Gas gathering results are the biggest contributor to VFF emissions, so replicate the calculation of the emissions factors:
@@ -1212,7 +1220,7 @@ test = calculate_gas_gathering_emissions_factors('Baseline')
 print(test['gas_gathering_loss_rates'])
 
 
-# In[234]:
+# In[14]:
 
 
 #Helper function for fugitive emissions from surface processing:
@@ -1267,7 +1275,7 @@ def calculate_gas_gathering_fugitives(case, sensitivity_variables =None):
 # 
 # 
 
-# In[235]:
+# In[15]:
 
 
 #Helper function:
@@ -1473,7 +1481,7 @@ def calculate_gas_dehydration_vents(case, sensitivity_variables =None):
 # 
 # 
 
-# In[236]:
+# In[16]:
 
 
 def calculate_HC_gas_reinjection_compressor_fugitives(case, sensitivity_variables =None):
@@ -1481,10 +1489,12 @@ def calculate_HC_gas_reinjection_compressor_fugitives(case, sensitivity_variable
         field_lifespan = sensitivity_variables.get('field_lifespan', field_lifespan_default)
         GWP_H2 = sensitivity_variables.get('GWP_H2', GWP_H2_default)
         number_production_wells = sensitivity_variables.get('number_production_wells', number_production_wells_default)
+        PSA_unit_slippage_rate = sensitivity_variables.get('PSA Unit Slippage Rate (%)', PSA_unit_slippage_rate_default)
     else:
         field_lifespan = field_lifespan_default
         GWP_H2 = GWP_H2_default
         number_production_wells = number_production_wells_default
+        PSA_unit_slippage_rate = PSA_unit_slippage_rate_default
 
     # Call calculate_gas_dehydration_vents to get the CH4 and H2 values after dehydration and determine the mass flows to the reinjection compressors
     gas_dehydration_vents_info = calculate_gas_dehydration_vents(case,sensitivity_variables)
@@ -1872,7 +1882,7 @@ print(f"Case: {HC_gas_reinjection_compressor_fugitives_info['case']}, HC Gas Rei
 # 
 # Paper assumes certain amount of fugitive emissions downstream of the reinjection compressors, at the injection wells. The amount of waste gas that is re-injected is the full amount of waste gas, less the amount of gas that is combusted to power the compressor(s).
 
-# In[237]:
+# In[17]:
 
 
 def calculate_HC_gas_reinjection_well_fugitives(case, sensitivity_variables=None):
@@ -1938,7 +1948,7 @@ def calculate_HC_gas_reinjection_well_fugitives(case, sensitivity_variables=None
 
 # ## 2.5 Separation
 
-# In[238]:
+# In[18]:
 
 
 #Definine a helper function for fugitive loss rates during separation:
@@ -2006,7 +2016,7 @@ def calculate_production_separation_fugitives(case, sensitivity_variables =None)
 # print(f"N2 separation losses for the 'Baseline' case: {production_separation_fugitives_info['N2_separation_losses']}")
 
 
-# In[239]:
+# In[19]:
 
 
 # Now we have determined the mass flows after the separator and the fugitive losses during separation, we can back-calculate the mass flows at the wellhead.
@@ -2083,7 +2093,7 @@ def calculate_mass_flows_upstream_separator(case, sensitivity_variables=None):
 # This is the sum total of the calculations in Sections 2.1 and 2.2, above.
 # 
 
-# In[240]:
+# In[20]:
 
 
 def calculate_total_operational_VFF_emissions(case, sensitivity_variables=None):
@@ -2230,7 +2240,7 @@ def plot_total_lifetime_operational_VFF_emissions_component_percentages(case):
 plot_total_lifetime_operational_VFF_emissions_component_percentages('Baseline')
 
 
-# In[241]:
+# In[21]:
 
 
 # # Create two categories for the fugitive emissions: varying with production and constant with production
@@ -2300,7 +2310,7 @@ def calculate_total_fugitive_emissions_varying_with_production(case,sensitivity_
 # print(f"Percentage of Total VFF Emissions Varying with Production for Baseline: {total_fugitive_emissions_varying_with_production_info['percent_total_fugitive_emissions_varying_with_production']} %")
 
 
-# In[242]:
+# In[22]:
 
 
 # Create a helper function to calculate the total fugitive emissions constant with production:
@@ -2388,7 +2398,7 @@ def calculate_total_fugitive_emissions_constant_with_production(case,sensitivity
 # 
 # Emissions factor is taken from GREET 1_2016, sheet 'EF', Table 2.2 and 2.3, "Emission Factors of Fuel Combustion: Feedstock and Fuel Transportation from Product Origin to Product Destination back to Poduct Origin (grams per mmbtu of fuel burned)".
 
-# In[243]:
+# In[23]:
 
 
 #Note the functions/calculations below use constants/assumptions defined previously. 
@@ -2401,12 +2411,14 @@ def calculate_exploration_emissions(case, sensitivity_variables=None):
         field_depth = sensitivity_variables.get('field_depth', depths[case])
         GWP_H2 = sensitivity_variables.get('GWP_H2', GWP_H2_default)
         number_production_wells = sensitivity_variables.get('number_production_wells', number_production_wells_default)
+        PSA_unit_slippage_rate = sensitivity_variables.get('PSA Unit Slippage Rate (%)', PSA_unit_slippage_rate_default)
     else:
         oil_production = oil_production_default
         field_lifespan = field_lifespan_default
         field_depth = depths[case]
         GWP_H2 = GWP_H2_default
         number_production_wells = number_production_wells_default
+        PSA_unit_slippage_rate = PSA_unit_slippage_rate_default
 
     #Calculate the 
         
@@ -2424,7 +2436,7 @@ def calculate_exploration_emissions(case, sensitivity_variables=None):
     survey_vehicle_energy_consumption = heavy_duty_truck_diesel_intensity * weight_land_survey * distance_survey / 1E6
     drilling_energy_consumption = (number_dry_wells + number_exploration_wells) * energy_intensity_per_well
 
-    daily_field_H2_exported = H2_after_dehy * (1 - PSA_unit_slippage_rate) #tonnes/day. It is assumed that 10% of H2 entering the PSA unit is lost.
+    daily_field_H2_exported = H2_after_dehy * (1 - PSA_unit_slippage_rate) #tonnes/day. In the baseline case, it is assumed that 10% of H2 entering the PSA unit is lost. This is one of the assumptions checked in the Monte Carlo analysis.
 
     daily_energy_from_produced_oil = 0.475092430879946 #mmBTU/day. This is the energy content of the oil produced, as calculated in the OPGEE model.
 
@@ -2464,7 +2476,7 @@ def calculate_exploration_emissions(case, sensitivity_variables=None):
 # 
 # This section takes a very similar approach to Section 3.1. It estimates the energy required (in the form of diesel) to develop the field (i.e. under the default assumptions, drill 50x production wells plus 13 injection wells) and then uses an emissions factor to convert this energy consumption into GHG emissions. 
 
-# In[244]:
+# In[24]:
 
 
 #Now define a function to calculate the emissions associated with development that vary with the case:
@@ -2598,7 +2610,7 @@ for case in cases:
 # 
 # ![image-3.png](attachment:image-3.png) ![image-4.png](attachment:image-4.png)
 
-# In[ ]:
+# In[25]:
 
 
 #First calculate the steel requirements for the production wells (50x production wells is default assumption):
@@ -2736,7 +2748,7 @@ def calculate_well_steel_mass_MC(case, sensitivity_variables=None):
 # Here, Brandt takes the OPGEE default values for the surface tubing, which are stated below. It assumes std weight tubing, based on a lookup table from  "Oilfield data handbook", Apex Distribution Inc.
 # Brandt assumes that tubing is only required for the production wells, not the injection wells. This is a curious assumption, as injection wells would also require tubing. Calculations for both just production wells and all wells are included below.
 
-# In[ ]:
+# In[26]:
 
 
 # Calculate the steel required for surface tubing, as a function of case and sensitivity variables
@@ -2798,7 +2810,7 @@ print(result_surface_tubing)
 # 
 # For the time being, I will retain Brandt's assumption of a single separator of the smallest size provided in the OPGEE default table (noting the provided reference is now defunct).
 
-# In[ ]:
+# In[27]:
 
 
 separator_nominal_weight = 1692 #lb. As noted above, this is taken directly from the OPGEE model.
@@ -2818,7 +2830,7 @@ print(separator_total_weight)
 # 
 # ![image.png](attachment:image.png)
 
-# In[ ]:
+# In[28]:
 
 
 #First define a function to calculate absorber inner diameter based on the logic in OPGEE, which cites data from Manning and Thompson (1991), derived from Khan and Manning (1985).
@@ -2870,7 +2882,7 @@ print(gas_sweetening_equip_total_mass)
 # 
 # ![image.png](attachment:image.png)
 
-# In[ ]:
+# In[29]:
 
 
 contactor_operating_pressure = absorber_operating_pressure # 500 psig. The OPGEE model assumes pressure is controlled to this point.
@@ -2916,7 +2928,7 @@ contactor_sizing_lookup = pd.DataFrame(data)
 
 
 
-# In[ ]:
+# In[30]:
 
 
 def find_contactor_sizing(gas_flow_rate, operating_pressure):
@@ -2986,7 +2998,7 @@ print('Total mass of dehydration equipment:', dehydration_equip_total_mass,'lb')
 # 
 # "From relationship for centrifugal compressors from MS thesis of Y. Sun 2015.  Relationship is M = 2887 + 0.7820*Qg, where M is mass of compressor in kg, and Qg is gas flow rate in m3/hr.  Conversion factor of 0.85 is used to convert from mscf/d to m3/hr."
 
-# In[ ]:
+# In[31]:
 
 
 gas_injection_volume = 0.666295945746444 #mscf/d. This is the volume of gas injected. OPGEE calculates this based on assumed reservoir/injection pressure, process pressure, and uses a
@@ -3002,7 +3014,7 @@ print('Total mass of gas injection equipment:', gas_injection_total_mass,'lb')
 # 
 # According to Brandt, PSA is considered standard technology for gas separation in hydrogen production. PSA is not included in the default OPGEE model, so Brandt just assumes a multiple of separator mass.
 
-# In[ ]:
+# In[32]:
 
 
 PSA_unit_mass = separator_total_weight * 5 #lb. This is the mass of the PSA unit, as calculated in the OPGEE model.
@@ -3013,7 +3025,7 @@ print('Total mass of PSA unit:', PSA_unit_mass,'lb')
 # 
 # The OPGEE defaults for "ancilliary structures and construction" include only steel tanks for oil and produced water storage. Produced water storage is excluded in the hydrogen study. The default assumptions call for 3000 bbl of total oil storage capacity, provided by 4off tanks.
 
-# In[ ]:
+# In[33]:
 
 
 mass_steel_tanks = 63079.0964136334 #lb. The OPGEE model does not link this calculation to any inputs, so this is taken directly from the model and will not change between scenarios.
@@ -3023,7 +3035,7 @@ mass_steel_tanks = 63079.0964136334 #lb. The OPGEE model does not link this calc
 # 
 # Brandt's analysis states "Because we do not know the type of pipeline network that crude will be transported over, we compute the steel intensity of crude transport for the entire US pipeline system". It calculates "bbl oil transported per lb of steel" for the total US system then divides the total volume of assumed oil production from the hydrogen field by this ratio to estimate the transport infrastructure attributable to this development.
 
-# In[ ]:
+# In[34]:
 
 
 mass_us_pipelines = 74484864000 #lb. This is not linked to any inputs so is taken directly from the OPGEE model.
@@ -3067,7 +3079,7 @@ def calculate_export_pipeline_steel_mass(case, sensitivity_variables=None):
 # 
 # The OPGEE model calculates the mass of steel required for the average US natural gas well gathering line piping and multiplies this by the number of wells under consideration.
 
-# In[ ]:
+# In[35]:
 
 
 # Define a function that calculates the total mass of steel required for the gathering system, based on the number of wells and the mass of steel required per well, by case and sensitivity variables.
@@ -3104,7 +3116,7 @@ def calculate_gathering_system_steel_mass(case, sensitivity_variables=None):
 # 
 # Summing the mass of steel and multiplying by assumed carbon intensity
 
-# In[ ]:
+# In[36]:
 
 
 def calculate_total_steel_mass(case, sensitivity_variables):
@@ -3179,7 +3191,7 @@ def calculate_total_steel_emissions_MC(case, sensitivity_variables):
 # 
 # Section 4.1.1 outlines the design of the "moderate" complexity well assumed by Brandt. This section calculates the volume of cement required for these well, such that associated emissions can be inferred.
 
-# In[ ]:
+# In[37]:
 
 
 #As with the calculation of the amount of steel associated with wells, the amount of cement is also dependent on the well design, so only 3 scenarios are considered as sensitivity cases.
@@ -3303,7 +3315,7 @@ def calculate_cement_volume_mass(case, sensitivity_variables=None):
 # 
 # The calculation considers the volume of cement required to safely 'plug' and abandon the wells at the end of field life. 
 
-# In[ ]:
+# In[38]:
 
 
 # Define a function that calculates the wellbore plug mass and volume based on varying sensitivity variables:
@@ -3360,7 +3372,7 @@ def calculate_wellbore_plug_mass_and_volume(case, sensitivity_variables=None):
 # 
 # Summing the mass of cement and multiplying by emissions intensity:
 
-# In[ ]:
+# In[39]:
 
 
 # Now define a function to calculate total cement emissions based on case and varying sensitivity variables:
@@ -3405,7 +3417,7 @@ def calculate_total_cement_emissions(case, sensitivity_variables=None):
 # 
 # Calculates the embodied emissions associated with the drilling mud that is required to drill the production and injection wells. Note Brandt assumes hydrogen wells will fit the "medium" classification of all relevant categories.
 
-# In[ ]:
+# In[40]:
 
 
 max_volume_mud_required_multiple = 1 #This is a multiple of the full wellbore volume. Note in OPGEE reads "While wellbore will be partially filled with drillstring, we assume that the maximum mud volume required is equal to total wellbore volume due to mud infiltration and mud tank volumes"
@@ -3527,7 +3539,7 @@ def calculate_drilling_mud_emissions(case, sensitivity_variables=None):
 # 
 # This section accounts for the fact that the materials used in developing the field will first need to be transported to the field. It does this on a mass basis, considering assumed transport distances and transport modalities (i.e. truck vs rail)
 
-# In[ ]:
+# In[41]:
 
 
 #Assumed shipment distances for each material category:
@@ -3692,7 +3704,7 @@ def calculate_shipment_emissions_drilling_mud(case, sensitivity_variables=None):
 
 # ## 4.5 Total Embodied Emissions & Equivalent Daily Rate
 
-# In[ ]:
+# In[42]:
 
 
 # Define functions to calculate total emobided emissions and daily rate of embodied emissions based on case and varying sensitivity variables:
@@ -3773,7 +3785,7 @@ def calculate_embodied_emissions_daily_rate(case, sensitivity_variables=None):
 # 
 # Diesel consumption and associated emissions during exploration and drilling were already calculated in Section 3. This section appears to account for "upstream" emissions associated with the fuel. i.e. "The indirect energy consumption and GHG emissions of imported fuel" (OPGEE Manual). OPGEE and GREET call these the "Fuel Cycle" emissions, also known as the "well-to-tank" emissions (whereas combustion emissions are known as "tank-to-wheel" emissions).
 
-# In[ ]:
+# In[43]:
 
 
 diesel_total_fuel_cycle_emission_intensity = 19559.2732502507 #gCO2eq/mmbtu. This is the total fuel cycle emissions intensity of diesel, as calculated in GREET1_2016 and referenced in the OPGEE model.
@@ -3829,7 +3841,7 @@ def calculate_total_diesel_emissions(case,sensitivity_variables=None):
 # calculate_total_diesel_emissions('Baseline')
 
 
-# In[ ]:
+# In[44]:
 
 
 # Function to calculate total diesel emissions
@@ -3881,7 +3893,7 @@ def calculate_total_diesel_emissions(case, sensitivity_variables=None):
 # 
 # This calculation is based on a HYSYS process simulation to estimate energy/electricity consumption of a dehydration unit. It is assumed here that this energy consumption does not change between various sensitivity cases.
 
-# In[ ]:
+# In[45]:
 
 
 #The components in the dehydration unit that are assumed to require electricity are pump(s) and air-cooling fan(s).
@@ -3931,52 +3943,8 @@ total_electricity_use_dehydration = predicted_dehydration_pump_electricity_use +
 # 
 # OPGEE default assumptions are that the produced water treatment process involves Dissolved Air Flotation (DAF), Rotating Biological Contactors (RBCs), Dual Media Filtration (DMF), and Reverse Osmosis (RO). Each of these stages consumes a small amount of electricity. Again, this is assumed to be identical between all sensitivity cases.
 
-# In[ ]:
+# In[46]:
 
-
-# def calculate_water_treatment_energy_consumption(case, sensitivity_variables = None):
-#     if sensitivity_variables:
-#         number_production_wells = sensitivity_variables.get('number_production_wells', number_production_wells_default)
-#         oil_production = sensitivity_variables.get('oil_production', oil_production_default)
-#         field_lifespan = sensitivity_variables.get('field_lifespan', field_lifespan_default)
-#         water_production = sensitivity_variables.get('water_production', water_production_default)
-#     else:
-#         number_production_wells = number_production_wells_default
-#         oil_production = oil_production_default
-#         field_lifespan = field_lifespan_default
-#         water_production = water_production_default
-
-#         energy_consumption_DAF = 0.03513458 #kWh/bbl. OPGEE citing Vlasopoulos, N. et al. (2006)
-#         energy_consumption_RBC = 0.0349756 #kWh/bbl. OPGEE citing Vlasopoulos, N. et al. (2006)
-#         energy_consumption_DMF = 0.00429246 #kWh/bbl. OPGEE citing Vlasopoulos, N. et al. (2006)
-#         energy_consumption_RO = 0.2019046 #kWh/bbl. OPGEE citing Vlasopoulos, N. et al. (2006)
-
-#         litres_per_barrel = 158.9873 #litres/bbl. Conversion factor from barrels to litres.
-#         water_content_oil_emulsion = 14 #wt.% OPGEE default citing Manning, F. and Thompson, R. (1991)
-#         post_separation_oil_sg = 0.808306308121055 #unitless. Specific gravity of oil after primary separation. This is calculated based on assumed API gravity etc. Adding these calculations may be a future improvement to this model.
-
-
-#         water_in_oil_baseline = oil_production_default * post_separation_oil_sg * litres_per_barrel * water_content_oil_emulsion/100/1000 #tonne/day. This is the amount of water that remains in the oil after primary separation.
-#         water_in_oil = oil_production * post_separation_oil_sg * litres_per_barrel * water_content_oil_emulsion/100/1000 #tonne/day. This is the amount of water that remains in the oil after primary separation.
-
-#         # Calculate the WOR for the case at hand, by taking the case's flow rate in MMSCFD, muliplying it by the water production rate (in bbl/mmscf of gas) then dividing it by the oil production rate (in bbl/day).
-#         case_WOR = production_profile_df[f'{case} Raw Gas Rate, MSCFD'] / 1000 * water_production / oil_production
-
-#         water_after_separator_baseline = oil_production_default * production_profile_df['Baseline WOR'] * litres_per_barrel/1000 - water_in_oil_baseline #tonne/day. This is the total water production over the lifetime of the field.
-#         water_after_separator = oil_production * case_WOR * litres_per_barrel/1000 - water_in_oil #tonne/day. This is the total water production over the lifetime of the field.
-
-#         total_water_to_water_treatment = water_after_separator + water_in_oil #tonne/day
-#         total_water_to_water_treatment_BPD = total_water_to_water_treatment * 1000 / litres_per_barrel #bbl/day
-
-#         total_water_treatment_energy_consumption = total_water_to_water_treatment_BPD * (energy_consumption_DAF + energy_consumption_RBC + energy_consumption_DMF + energy_consumption_RO) #kWh/day
-
-#         return {
-#             'case': case,
-#             'case_WOR': case_WOR,
-#             'total_water_treatment_energy_consumption': total_water_treatment_energy_consumption
-#         }
-# #Test Usage:
-# print(calculate_water_treatment_energy_consumption('Baseline',sensitivity_assumptions)['total_water_treatment_energy_consumption'])
 
 def calculate_water_treatment_energy_consumption(case, sensitivity_variables=None):
     # Define the constants outside of the if-else block
@@ -3992,22 +3960,20 @@ def calculate_water_treatment_energy_consumption(case, sensitivity_variables=Non
     if sensitivity_variables:
         number_production_wells = sensitivity_variables.get('number_production_wells', number_production_wells_default)
         oil_production = sensitivity_variables.get('oil_production', oil_production_default)
+        production_profile_df[f'{case} WOR'] = production_profile_df['Water Production, BBL/D'] / oil_production # Updating the WOR calculation to consider the oil production rate of the sensitivity case
         field_lifespan = sensitivity_variables.get('field_lifespan', field_lifespan_default)
-        water_production = sensitivity_variables.get('water_production', water_production_default)
+        water_production = sensitivity_variables.get('Water Cut (bbl/mmscf)', water_production_default)
     else:
         number_production_wells = number_production_wells_default
         oil_production = oil_production_default
         field_lifespan = field_lifespan_default
         water_production = water_production_default
 
-    water_in_oil_baseline = oil_production_default * post_separation_oil_sg * litres_per_barrel * water_content_oil_emulsion / 100 / 1000 # tonne/day
     water_in_oil = oil_production * post_separation_oil_sg * litres_per_barrel * water_content_oil_emulsion / 100 / 1000 # tonne/day
 
     # Calculate the WOR for the case at hand
     case_WOR = production_profile_df[f'{case} WOR']
-    # print(oil_production)
-
-    water_after_separator_baseline = oil_production_default * production_profile_df['Baseline WOR'] * litres_per_barrel / 1000 - water_in_oil_baseline # tonne/day
+    
     water_after_separator = oil_production * case_WOR * litres_per_barrel / 1000 - water_in_oil # tonne/day
 
     total_water_to_water_treatment = water_after_separator + water_in_oil # tonne/day
@@ -4021,8 +3987,8 @@ def calculate_water_treatment_energy_consumption(case, sensitivity_variables=Non
         'total_water_treatment_energy_consumption': total_water_treatment_energy_consumption
     }
 
-# Test Usage:
-print(calculate_water_treatment_energy_consumption('Baseline')['total_water_treatment_energy_consumption'])
+# # Test Usage:
+# print(calculate_water_treatment_energy_consumption('Baseline')['total_water_treatment_energy_consumption'])
 
 
 
@@ -4031,7 +3997,7 @@ print(calculate_water_treatment_energy_consumption('Baseline')['total_water_trea
 # 
 # The above estimates of electricity consumption can be converted into assumption of emissions by assuming an emissions intensity of the system that is providing the electricity.
 
-# In[ ]:
+# In[47]:
 
 
 def calculate_electricity_emissions(case,sensitivity_variables = None):
@@ -4039,7 +4005,7 @@ def calculate_electricity_emissions(case,sensitivity_variables = None):
         number_production_wells = sensitivity_variables.get('number_production_wells', number_production_wells_default)
         oil_production = sensitivity_variables.get('oil_production', oil_production_default)
         field_lifespan = sensitivity_variables.get('field_lifespan', field_lifespan_default)
-        water_production = sensitivity_variables.get('water_production', water_production_default)
+        water_production = sensitivity_variables.get('Water Cut (bbl/mmscf)', water_production_default)
     else:
         number_production_wells = number_production_wells_default
         oil_production = oil_production_default
@@ -4066,20 +4032,20 @@ def calculate_electricity_emissions(case,sensitivity_variables = None):
         'total_electricity_emissions': total_electricity_emissions
     }
 
-#Test Usage:
-calculate_electricity_emissions('Baseline')
+# #Test Usage:
+# calculate_electricity_emissions('Baseline')
 
 
 # ## 5.3 Total Emissions from "Other" Offsite Emissions
 # 
 # Finally, calculate the aggregate of each of the above sources in this section.
 
-# In[ ]:
+# In[48]:
 
 
 def calculate_total_other_offsite_emissions(case, sensitivity_variables=None):
     if sensitivity_variables:
-        water_production = sensitivity_variables.get('water_production', water_production_default)
+        water_production = sensitivity_variables.get('Water Cut (bbl/mmscf)', water_production_default)
     else:
         water_production = water_production_default
 
@@ -4100,7 +4066,7 @@ calculate_total_other_offsite_emissions('Baseline')
 # 
 # Brandt/OPGEE account for miscellaneous, "small sources" of emissions (e.g. light vehicles driven around the field location) as 10% of "direct sources". That is, emissions from Combustion, Land Use, Venting, Flaring and Fugitives throughout all stages of development (Exploration, Drilling and Development, Production & Extraction, and Surface Processing), all of which have been calculated above.
 
-# In[ ]:
+# In[49]:
 
 
 # Defining a function to calculate total direct emissions in kg/day depending on the case:
@@ -4171,14 +4137,14 @@ print(calculate_total_direct_emissions('Baseline'))
 
 # ## 7.1 Function to calculate emission statistics for each case, per Brandt
 
-# In[ ]:
+# In[50]:
 
 
 def calculate_total_emissions(case, sensitivity_variables=None):
     if sensitivity_variables:
         GWP_H2 = sensitivity_variables.get('GWP_H2', GWP_H2_default)
         oil_production = sensitivity_variables.get('oil_production', oil_production_default)
-        water_production = sensitivity_variables.get('water_production', water_production_default)
+        water_production = sensitivity_variables.get('Water Cut (bbl/mmscf)', water_production_default)
         small_source_emissions_percentage = sensitivity_variables.get('small_source_emissions_percentage', small_source_emissions_percentage_default)
         total_producing_wells = sensitivity_variables.get('Total Producing Wells', number_production_wells_default)
         field_lifespan = sensitivity_variables.get('Field Life', field_lifespan_default)
@@ -4268,7 +4234,7 @@ print('Total emissions:', result['Mean Emissions kgCO2e/kgH2'], 'kgCO2e/kgH2')
 # 
 # Calculate abolute total emissions and productions to calculate average emissions intensity over whole field life.
 
-# In[ ]:
+# In[51]:
 
 
 #Create a function to calculate the total emissions for each case, over the entire field lifetime. This will return a single value for each case, representing the total emissions over the lifetime of the field.:
@@ -4328,7 +4294,7 @@ print('Production-weighted mean emissions per total amount of hydrogen produced 
 
 # ## 7.4 Calculate and Store Emissions Results for All Cases
 
-# In[ ]:
+# In[52]:
 
 
 # First, define the cases based on the reservoir data dataframe:
@@ -4357,7 +4323,7 @@ pivoted_emissions_df = emissions_df.T  # Transpose to have cases as columns and 
 print(pivoted_emissions_df)
 
 
-# In[ ]:
+# In[53]:
 
 
 #Create a horizontal bar plot of mean emissions per kg of hydrogen produced for each case:
@@ -4383,16 +4349,16 @@ plt.show()
 
 # ### 7.5.1 Set up functions to handle the MC analysis
 
-# In[ ]:
+# In[54]:
 
 
-# # Define a function that handle the presence or absense of sensitivity variables and return the appropriate results, to be used within each calculation function
+# # Define a function to handle the presence or absense of sensitivity variables and return the appropriate results, to be used within each calculation function
 
 # def sensitivity_variable_handling(sensitivity_variables):
 #     if sensitivity_variables:
 #         GWP_H2 = sensitivity_variables.get('GWP_H2', GWP_H2_default)
 #         oil_production = sensitivity_variables.get('oil_production', oil_production_default)
-#         water_production = sensitivity_variables.get('water_production', water_production_default)
+#         water_production = sensitivity_variables.get('Water Cut (bbl/mmscf)', water_production_default)
 #         small_source_emissions_percentage = sensitivity_variables.get('small_source_emissions_percentage', small_source_emissions_percentage_default)
 #         total_producing_wells = sensitivity_variables.get('Total Producing Wells', number_production_wells_default)
 #         field_lifespan = sensitivity_variables.get('Field Life', field_lifespan_default)
@@ -4413,7 +4379,7 @@ plt.show()
 #     return {GWP_H2, oil_production, water_production, small_source_emissions_percentage, total_producing_wells, field_lifespan, water_cut, h2_purification_loss_rate, pressure_decline_rate}
 
 
-# In[ ]:
+# In[55]:
 
 
 # Convert this notebook to a python file to enable more efficient, parallel calcluation in a separate notebook.
@@ -4421,31 +4387,11 @@ plt.show()
 get_ipython().system('jupyter nbconvert --to script BrandtModelReplication_v0_2.ipynb')
 
 
-# In[272]:
+# In[56]:
 
 
 # All functions have been designed to optionally include sensitivity variables. If sensitivity variables are not provided, the default values will be used.
 # This section defines functions to perform sensitivity analyses as well as defining the assumed probability density functions and distributions for the sensitivity variables.
-
-# Repeat the definition of calculate_average_emissions_per_kg_hydrogen to test parallel computation code
-
-# def calculate_average_emissions_per_kg_hydrogen(case,sensitivity_variables=None):
-#     if sensitivity_variables:
-#         field_lifespan = sensitivity_variables.get('field_lifespan', field_lifespan_default)
-#         oil_production = sensitivity_variables.get('oil_production', oil_production_default)
-#         small_source_emissions_percentage = sensitivity_variables.get('small_source_emissions_percentage', small_source_emissions_percentage_default)
-#     else:
-#         field_lifespan = field_lifespan_default
-#         oil_production = oil_production_default
-#         small_source_emissions_percentage = small_source_emissions_percentage_default
-
-#     total_emissions = calculate_total_emissions(case,sensitivity_variables)['Total lifetime emissions kgCO2e']
-#     total_hydrogen_produced = calculate_total_hydrogen_produced(case,sensitivity_variables)['total_hydrogen_produced']
-#     average_emissions_per_kg_hydrogen = total_emissions / total_hydrogen_produced
-#     return {
-#         'case': case,
-#         'average_emissions_per_kg_hydrogen': average_emissions_per_kg_hydrogen
-#     }
 
 def perform_sensitivity_analysis(case, sensitivity_variables):
     first_variable = sensitivity_variables[list(sensitivity_variables.keys())[0]]
@@ -4474,28 +4420,27 @@ def perform_sensitivity_analysis_parallel(case, sensitivity_variables):
     return pd.DataFrame({**sensitivity_variables, 'average_emissions_per_kg_hydrogen': results_values})
 
 # Define the sensitivity analysis assumptions
-N = 100  # Number of samples to be generated for the Monte Carlo simulation
+N = 50  # Number of samples to be generated for the Monte Carlo simulation
 
 # Set the random seed so the results are repeatable
 np.random.seed(123)
 sensitivity_assumptions = {
     'GWP_H2': np.random.uniform(2, 15, N),
     'oil_production': np.random.uniform(0.01, 10, N),
-    'water_production': np.random.uniform(0.01, 10, N),
     'small_source_emissions_percentage': np.random.uniform(1, 15, N),
     'Total Producing Wells': np.random.randint(1, 100, N),
-    'Field Life': np.random.randint(5, 50, N),
+    'Field Life (years)': np.random.randint(5, 50, N),
     'Water Cut (bbl/mmscf)': np.random.uniform(0.01, 10, N),
-    'H2 purification loss rate': np.random.uniform(1, 20, N),
+    'PSA Unit Slippage Rate (fraction)': np.random.uniform(5/100, 15/100, N),
     'pressure_decline_rate': np.random.uniform(0.98, 85, N),
     'number_production_wells': np.random.randint(10, 100, N)
 }
 
-# # Run sensitivity analysis for the 'Baseline' case
+# # Run sensitivity analysis for the 'Baseline' case - NON PARALLEL
 # sensitivity_results = perform_sensitivity_analysis('Baseline', sensitivity_assumptions)
 # print(sensitivity_results)
 
-# Run sensitivity analysis for the 'Baseline' case
+# Run sensitivity analysis for the 'Baseline' case - PARALLEL
 sensitivity_results = perform_sensitivity_analysis_parallel('Baseline', sensitivity_assumptions)
 
 # Calculate basic statistics for the sensitivity analysis results:
@@ -4537,7 +4482,7 @@ print(sensitivity_assumptions_statistics)
 
 
 
-# In[273]:
+# In[57]:
 
 
 # Use a loop to calculate the sensitivity statistics for each case and store the results in a dataframe for display:
@@ -4554,7 +4499,19 @@ sensitivity_results_df = pd.DataFrame(sensitivity_results_dict)
 print(sensitivity_results_df)
 
 
-# In[247]:
+# In[58]:
+
+
+sensitivity_results_df 
+
+
+# In[ ]:
+
+
+
+
+
+# In[59]:
 
 
 # Plot a histogram of the sensitivity analysis results for the 'Baseline' case:
@@ -4581,7 +4538,7 @@ plt.show()
 
 # ### 7.5.2 Tornado charts based on MC analysis
 
-# In[249]:
+# In[60]:
 
 
 # Make a Tornado Chart that is centered around the deterministic value of the case under consideration:
@@ -4782,7 +4739,7 @@ print(tornado_df)
 # create_tornado_plot('Baseline', sensitivity_assumptions)
 
 
-# In[250]:
+# In[61]:
 
 
 # #Create another tornado plot using the same data but excluding small_source_emissions_percentage
@@ -4818,7 +4775,7 @@ print(tornado_df)
 # plt.show()
 
 
-# In[251]:
+# In[62]:
 
 
 def perform_sensitivity_analysis(case, sensitivity_variables):
@@ -4841,7 +4798,7 @@ def perform_sensitivity_analysis_parallel(case, sensitivity_variables):
     return pd.DataFrame({**sensitivity_variables, 'average_emissions_per_kg_hydrogen': results})
 
 
-# In[252]:
+# In[63]:
 
 
 sensitivity_statistics = sensitivity_results.describe()
@@ -4850,7 +4807,7 @@ print(sensitivity_statistics)
 
 # ### 7.5.3 Rank-Order Correlation & Regression Coefficients
 
-# In[253]:
+# In[64]:
 
 
 # Calculate the rank-order correlation between the sensitivity variables and the average emissions per kg of hydrogen produced
@@ -4891,7 +4848,7 @@ plt.show()
 
 # # 8. Summary Plots
 
-# In[254]:
+# In[65]:
 
 
 #First summarise all of the emissions data in a single DataFrame
@@ -4926,7 +4883,7 @@ emissions_df.head()
 
 
 
-# In[255]:
+# In[66]:
 
 
 #Now create a function to plot total emissions over time as a stacked bar chart of the different emission types:
@@ -4996,7 +4953,7 @@ plot_emissions_by_case('Baseline')
 #     plot_emissions_by_case(case)
 
 
-# In[256]:
+# In[67]:
 
 
 #Now create a function to plot emissions intensity over time as a stacked bar chart of the different emission types:
@@ -5044,7 +5001,7 @@ plot_emissions_intensity_by_case('Baseline')
 #     plot_emissions_intensity_by_case(case)
 
 
-# In[257]:
+# In[68]:
 
 
 # Now create a function to show the relative contribution of each emission type to the total annual for each year of the field's life:
@@ -5098,7 +5055,7 @@ plot_relative_emissions_by_case('Baseline')
 
 
 
-# In[258]:
+# In[69]:
 
 
 ### Now creating a function to inspect the results EXCLUDING embodied emissions for each case:
@@ -5174,7 +5131,7 @@ plot_emissions_excluding_embodied('Baseline')
 #     plot_emissions_excluding_embodied(case)
 
 
-# In[259]:
+# In[70]:
 
 
 # #Print minimum, mean, median, and maximum production-weighted emissions, excluding embodied emissions
@@ -5247,13 +5204,13 @@ def calculate_emissions_statistics_excluding_embodied(case):
 calculate_emissions_statistics_excluding_embodied('Baseline')
 
 
-# In[260]:
+# In[71]:
 
 
 production_profile_df.head()
 
 
-# In[261]:
+# In[72]:
 
 
 def plot_gas_production(case):
@@ -5285,7 +5242,7 @@ plot_gas_production('Baseline')
 
 
 
-# In[262]:
+# In[73]:
 
 
 total_steel_emissions = (calculate_well_steel_mass_MC('Baseline')['total_steel_mass_all_wells'] * steel_emissions_intensity)/1000 #kgCO2e. This is the total emissions associated with steel use in well construction.
@@ -5293,7 +5250,7 @@ total_steel_emissions = (calculate_well_steel_mass_MC('Baseline')['total_steel_m
 total_steel_emissions
 
 
-# In[263]:
+# In[74]:
 
 
 # Create a function to calculate the total amount of emissions in the steel and cement needed to make the wells, and express this as a percentage of all embodied emissions for each case:
@@ -5335,7 +5292,7 @@ print(f"Total embodied emissions associated with steel and cement in wells as a 
 
 
 
-# In[264]:
+# In[75]:
 
 
 # Define a function that calculates the percentage of VFF emissions relative to total emissions for a given case:
@@ -5370,7 +5327,7 @@ print(f"VFF emissions as a percentage of total emissions in the 'Baseline' case:
 
 # ## 9.1 Cost Assumptions
 
-# In[265]:
+# In[76]:
 
 
 # Establish key assumptions regarding development and operating costs for the hydrogen production facility. For the time being, do this both on a 'cost of materials' basis (i.e. cost allowance
@@ -5389,7 +5346,7 @@ cost_per_ft_production = 25 # USD/ft. This is the cost per foot of production.
 
 # ## 9.2 Cost Estimate Calculations
 
-# In[266]:
+# In[77]:
 
 
 # Estimate the total cost on a 'cost of materials' basis by case and sensitivity values:
@@ -5438,7 +5395,7 @@ def calculate_cost_historical_basis(case,sensitivity_variables=None):
     }
 
 
-# In[267]:
+# In[78]:
 
 
 # Example usage:
@@ -5457,7 +5414,7 @@ print('Estimated total cost on a "historical average cost" basis for the Baselin
 # 
 # This will then enable assessment of shorter and longer field life assumptions.
 
-# In[268]:
+# In[79]:
 
 
 #Extract the Baseline case flow rate at year 1:
@@ -5467,7 +5424,7 @@ Baseline_year_30_flow_rate = production_profile_df.loc[29, 'Baseline Raw Gas Rat
 print(Baseline_year_30_flow_rate)
 
 
-# In[269]:
+# In[80]:
 
 
 Q1 = Baseline_year_1_flow_rate  # Flow rate at year 1
@@ -5505,7 +5462,7 @@ print(f"Decay constant (k): {k}")
 print(f"Initial quantity (Q0): {Q0}")
 
 
-# In[270]:
+# In[81]:
 
 
 import numpy as np
@@ -5528,7 +5485,7 @@ def exponential_decay_objective(params, t, data):
     model = decay_curve(t, Q0, k)
     return np.sum((model - data) ** 2)
 
-# Define the constraint to ensure the sum of the production rates equals the desired total
+# Define the constraint to ensure the sum of the production rates equals the desired total gas production of the field
 desired_sum = 181657.174829267
 def constraint(params, t):
     Q0, k = params
@@ -5562,7 +5519,7 @@ print(f"Optimal Q0: {optimal_Q0}")
 print(f"Optimal k: {optimal_k}")
 
 
-# In[271]:
+# In[82]:
 
 
 field_life_assumption = 30  #years
@@ -5588,4 +5545,125 @@ fitted_production_profile_df
 # Calculate the sum of the fitted production profile over the field life
 total_production_fitted = fitted_production_profile.sum() * 365
 total_production_fitted
+
+
+# ### Compare the emissions results for the Baseline Case compared to the Exponential Approx Baseline Case:
+
+# In[83]:
+
+
+# Compare the emissions results for the Baseline Case compared to the Exponential Approx Baseline Case:
+
+# Calculate the total emissions for the Baseline case
+total_emissions_baseline = calculate_total_emissions('Baseline')
+# Calculate the total emissions for the Exponential Approx Baseline case
+total_emissions_exponential_approx = calculate_total_emissions('Exponential Approx Baseline')
+
+# Initialize lists to store the raw values and percentage differences
+emission_types = []
+baseline_values = []
+exponential_approx_values = []
+percentage_differences = []
+
+# Loop through the dictionary and calculate the percentage difference for each emission type
+for key in total_emissions_baseline:
+    if key in total_emissions_exponential_approx:
+        baseline_value = total_emissions_baseline[key]
+        exponential_approx_value = total_emissions_exponential_approx[key]
+        
+        # Ensure both values are single numeric values
+        if isinstance(baseline_value, pd.Series):
+            baseline_value = baseline_value.values[0]
+        if isinstance(exponential_approx_value, pd.Series):
+            exponential_approx_value = exponential_approx_value.values[0]
+        
+        # Convert values to numeric types
+        try:
+            baseline_value = float(baseline_value)
+            exponential_approx_value = float(exponential_approx_value)
+            
+            # Calculate the percentage difference
+            percentage_difference = ((exponential_approx_value - baseline_value) / baseline_value) * 100
+            
+            # Store the values in the lists
+            emission_types.append(key)
+            baseline_values.append(baseline_value)
+            exponential_approx_values.append(exponential_approx_value)
+            percentage_differences.append(percentage_difference)
+        except ValueError:
+            print(f"Skipping {key} due to non-numeric values")
+
+# Create a DataFrame from the lists
+comparison_df = pd.DataFrame({
+    'Emission Type': emission_types,
+    'Baseline Value': baseline_values,
+    'Exponential Approx Value': exponential_approx_values,
+    'Percentage Difference': percentage_differences
+})
+
+# Display the DataFrame
+comparison_df
+
+
+# ### Now use the Expontential Approx Baseline Case as the basis to examine the significance of the assumption regarding 30 year field life
+# 
+# Sequentially, this means we need to define a function that will:
+# 
+# 1. Accept as input an assumption of field life
+# 1. Calculate exponential coefficients given the constraints of the initial and final flow rate from the 'Exponential Approx Baseline' case
+# 1. Use these coefficients to calculate an annual flow rate for each year of the field's life, creating a Raw Gas Rate flow profile
+# 1. Use the Raw Gas Rate flow profile to calculate associated GOR and WOR profiles
+# 1. Run the new case through the calculate_total_emissions function to calculate deterministic emissions results
+# 
+# Once this function is defined:
+# 1. Run a new sensitivity analysis that considers length of field life as well as the other sensitivity assumptions
+
+# In[84]:
+
+
+# Define a function to calculate coefficients to define an exponential decay curve for a given field life. The initial flow rate and final flow rate
+# will be taken from the Baseline case. EUR is calculated by taking a discrete value of the fitted exponential decay curve for year year of field life, multiplying by 365 to get the
+# total annual production, and summing over all years of the field life.
+
+def calculate_exponential_decay_coefficients(field_lifespan, sensitivity_variables=None):
+    if sensitivity_variables
+        oil_production_rate = sensitivity_variables.get('oil_production_rate', oil_production_rate)
+
+    # Extract the initial and final flow rates from the Baseline case
+    Baseline_approx_year_1_flow_rate = production_profile_df.loc[0, 'Exponential Approx Baseline Raw Gas Rate, MSCFD']
+    Baseline_approx_year_30_flow_rate = production_profile_df.loc[29, 'Exponential Approx Baseline Raw Gas Rate, MSCFD']
+    
+    Q1 = Baseline_approx_year_1_flow_rate
+    Q2 = Baseline_approx_year_30_flow_rate
+
+    # Calculate the decay constant k
+    k = np.log(Q1 / Q2) / (field_lifespan - 1)
+
+    # Calculate the initial quantity Q0
+    Q0 = Q1 / np.exp(-k)
+
+    # Define the time vector for the field life
+    years = np.arange(1, field_lifespan + 1)
+
+    # Calculate the flow rates for each year using the exponential decay curve
+    flow_rates = decay_curve(years, Q0, k)
+
+    # Calculate the total gas produced by the field (EUR) by summing over the flow rates for each year
+    total_gas_produced = np.sum(flow_rates) * 365 / 1E6 #BCF
+
+    # Update the production_profile_df with the fitted exponential decay curve
+    production_profile_df[f'Exponential Approx Baseline Raw Gas Rate, MSCFD (Field Life {field_lifespan} years)'] = flow_rates
+    # Calculate the associated GOR and WOR for the fitted exponential decay curve
+
+
+    return Q0, k, total_gas_produced
+
+# Example usage
+Q0, k, total_gas_produced = calculate_exponential_decay_coefficients(10)
+print(f"Initial quantity (Q0): {Q0}")
+print(f"Decay constant (k): {k}")
+print(f"Total gas produced by the field (EUR): {total_gas_produced} BCF")
+
+
+    
 
