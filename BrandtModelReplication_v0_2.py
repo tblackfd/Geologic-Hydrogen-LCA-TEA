@@ -2683,7 +2683,7 @@ def calculate_casing_or_tubing_mass(diameter, length, lookup_df):
         raise ValueError("Error. Diameter is not included in the lookup table")
 
 # Function to calculate steel mass for given case and sensitivity variables. The design of a well varies stepwise with depth, so these cases can be considered as sensitivity cases but cannot easily be included in a Monte Carlo uncertainty simulation.
-def calculate_well_steel_mass_MC(case, sensitivity_variables=None):
+def calculate_well_steel_mass(case, sensitivity_variables=None):
     if case == 'Shallow': #This well design is a modified version of the baseline design detailed in the OPGEE model and taken from "J.P. Drilling (1996) Oil and Gas Field Development Techniques, p. 37 for Parentis oil field, modified to recognize OPGEE default."
         conductor_diameter = 20  # in
         conductor_length = 50  # ft
@@ -2758,8 +2758,8 @@ def calculate_well_steel_mass_MC(case, sensitivity_variables=None):
 #     'number_production_wells': 50,
 #     # 'total_number_wells': 100
 # }
-# result_shallow = calculate_well_steel_mass_MC('Shallow', sensitivity_variables)
-# result_deep = calculate_well_steel_mass_MC('Deep', sensitivity_variables)
+# result_shallow = calculate_well_steel_mass('Shallow', sensitivity_variables)
+# result_deep = calculate_well_steel_mass('Deep', sensitivity_variables)
 
 # print(result_shallow)
 # print(result_deep)
@@ -3157,9 +3157,9 @@ def calculate_gathering_system_steel_mass(case, sensitivity_variables=None):
 def calculate_total_steel_mass(case, sensitivity_variables):
     
     # Calculate total steel mass for wells
-    # well_steel_mass = calculate_well_steel_mass_MC(case, sensitivity_variables)
+    # well_steel_mass = calculate_well_steel_mass(case, sensitivity_variables)
     export_pipeline_steel_mass = calculate_export_pipeline_steel_mass(case, sensitivity_variables)['export_pipeline_steel_mass']
-    total_steel_mass_all_wells = calculate_well_steel_mass_MC(case,sensitivity_variables)['total_steel_mass_all_wells']
+    total_steel_mass_all_wells = calculate_well_steel_mass(case,sensitivity_variables)['total_steel_mass_all_wells']
     surface_tubing_total_mass_all_wells = calculate_surface_tubing_steel_mass(case, sensitivity_variables)['surface_tubing_total_mass_all_wells']
     total_gathering_system_steel_mass = calculate_gathering_system_steel_mass(case, sensitivity_variables)['total_gathering_system_steel_mass']
 
@@ -3179,7 +3179,7 @@ def calculate_total_steel_mass(case, sensitivity_variables):
         'total_steel_mass': total_steel_mass,
     }
 
-def calculate_total_steel_emissions_MC(case, sensitivity_variables):
+def calculate_total_steel_emissions(case, sensitivity_variables):
    
     total_emissions_steel = calculate_total_steel_mass(case, sensitivity_variables)['total_steel_mass'] * steel_emissions_intensity  # gCO2
     brandt_emissions = 1.96291E+10  # Reference emissions from Brandt
@@ -3202,9 +3202,9 @@ def calculate_total_steel_emissions_MC(case, sensitivity_variables):
 # mass_shallow = calculate_total_steel_mass('Shallow', sensitivity_variables)
 # mass_deep = calculate_total_steel_mass('Deep', sensitivity_variables)
 
-# emissions_baseline = calculate_total_steel_emissions_MC('Baseline', sensitivity_variables)
-# emissions_shallow = calculate_total_steel_emissions_MC('Shallow', sensitivity_variables)
-# emissions_deep = calculate_total_steel_emissions_MC('Deep', sensitivity_variables)
+# emissions_baseline = calculate_total_steel_emissions('Baseline', sensitivity_variables)
+# emissions_shallow = calculate_total_steel_emissions('Shallow', sensitivity_variables)
+# emissions_deep = calculate_total_steel_emissions('Deep', sensitivity_variables)
 
 # print(mass_baseline)
 # print(mass_shallow)
@@ -3752,7 +3752,7 @@ def calculate_total_embodied_emissions(case, sensitivity_variables=None):
         field_lifespan = field_lifespan_default
 
     # Calculate total emissions associated with steel
-    total_steel_emissions = calculate_total_steel_emissions_MC(case, sensitivity_variables)['total_emissions_steel']  # gCO2
+    total_steel_emissions = calculate_total_steel_emissions(case, sensitivity_variables)['total_emissions_steel']  # gCO2
 
     # Calculate total emissions associated with cement
     total_cement_emissions = calculate_total_cement_emissions(case, sensitivity_variables)['total_cement_emissions']  # gCO2
@@ -5388,7 +5388,7 @@ plot_gas_production('Baseline')
 # In[ ]:
 
 
-total_steel_emissions = (calculate_well_steel_mass_MC('Baseline')['total_steel_mass_all_wells'] * steel_emissions_intensity)/1000 #kgCO2e. This is the total emissions associated with steel use in well construction.
+total_steel_emissions = (calculate_well_steel_mass('Baseline')['total_steel_mass_all_wells'] * steel_emissions_intensity)/1000 #kgCO2e. This is the total emissions associated with steel use in well construction.
 
 total_steel_emissions
 
@@ -5404,7 +5404,7 @@ def calculate_steel_and_cement_emissions(case):
     # total_steel_mass_all_wells = calculate_development_drilling_emissions(case)['total_steel_mass_all_wells'] #kg. This is the total mass of steel needed for all wells in the field.
 
     #Calculate the total amount of emissions in the steel needed to make the wells:
-    total_steel_emissions = (calculate_well_steel_mass_MC(case)['total_steel_mass_all_wells'] * steel_emissions_intensity)/1000 #kgCO2. This is the total emissions associated with the steel used in the wells.
+    total_steel_emissions = (calculate_well_steel_mass(case)['total_steel_mass_all_wells'] * steel_emissions_intensity)/1000 #kgCO2. This is the total emissions associated with the steel used in the wells.
 
     #Calculate the total amount of emissions in the cement needed to make the wells:
     total_cement_emissions_kg = calculate_total_cement_emissions(case)['total_cement_emissions']/1000 #kgCO2. This is the total emissions associated with the cement used in the wells.
